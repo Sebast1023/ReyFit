@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReyFit - Registro de Entrenamientos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            850: '#1f2937',
+                            900: '#111827',
+                        },
+                        emerald: {
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="./manifest.json">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .toast-enter { animation: slideInUp 0.3s ease-out forwards; }
+        .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+
+    <div class="max-w-md mx-auto p-4 sm:p-6 space-y-6 pb-24">
+        
+        <!-- Header -->
+        <header class="flex items-center justify-between pt-4 pb-2 border-b border-gray-800">
+            <div>
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    ReyFit
+                </h1>
+                <p class="text-sm text-gray-400 mt-1">Registra tu sobrecarga progresiva</p>
+            </div>
+        </header>
+
+        <!-- Formulario de Registro -->
+        <section class="bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-700">
+            <h2 class="text-lg font-semibold mb-4 text-white">Nuevo Registro</h2>
+            
+            <form id="workoutForm" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Categoría -->
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Grupo Muscular</label>
+                        <select id="categorySelect" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            <option value="Pecho">Pecho</option>
+                            <option value="Espalda">Espalda</option>
+                            <option value="Bíceps">Bíceps</option>
+                            <option value="Tríceps">Tríceps</option>
+                            <option value="Hombro">Hombro</option>
+                            <option value="Pierna1">Pierna 1 (Cuádriceps)</option>
+                            <option value="Pierna2">Pierna 2 (Femorales/Glúteo)</option>
+                        </select>
+                    </div>
+
+                    <!-- Ejercicio -->
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Ejercicio</label>
+                        <select id="exerciseSelect" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            <!-- Opciones llenadas por JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/50 rounded-xl p-3 border border-gray-700 space-y-3 mt-4">
+                    <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-800">
+                        <label class="block text-sm font-medium text-gray-300">Series de hoy</label>
+                        <input type="date" id="dateInput" required class="bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
+                    </div>
+                    
+                    <div id="setsContainer" class="space-y-3"></div>
+                    
+                    <button type="button" id="addSetBtn" class="w-full bg-gray-800 hover:bg-gray-700 text-emerald-400 text-sm font-medium py-2.5 rounded-lg transition-colors border border-gray-700 border-dashed flex justify-center items-center gap-2 mt-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Añadir otra serie
+                    </button>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 px-4 rounded-xl transition-colors mt-2 active:scale-[0.98] transform flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    Guardar Entrenamiento
+                </button>
+            </form>
+        </section>
+
+        <!-- Sección de Progreso -->
+        <section class="bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-white">Tu Progreso</h2>
+                <select id="historyFilter" class="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1 text-sm text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <!-- Opciones llenadas por JS -->
+                </select>
+            </div>
+
+            <div class="relative w-full h-48 sm:h-56 bg-gray-900 rounded-xl p-2 border border-gray-700 mb-4">
+                <canvas id="progressChart"></canvas>
+                <div id="noDataMessage" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm hidden">
+                    No hay suficientes datos para graficar.
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h3 class="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Historial</h3>
+                <div id="historyList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Items insertados por JS -->
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div id="toastContainer" class="fixed bottom-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-50"></div>
+
+    <script>
+        const exerciseDB = {
+            'Pecho': ['Press Inclinado con Mancuernas', 'Press Inclinado con Barra', 'Press de Pecho', 'Aperturas', 'Press de Banca'],
+            'Espalda': ['Remo T', 'Elevaciones de Trapecio', 'Jalon al pecho', 'Remo en polea'],
+            'Bíceps': ['Curl Barra Z', 'Curl Martillo',  'Curl Inclinado', 'Curl de Biceps con Mancuernas'],
+            'Tríceps': ['Press Frances', 'Copa', 'Jalon de Tríceps'],
+            'Hombro': ['Elevaciones Laterales', 'Press Militar(Mancuernas)', 'Press Militar(Barra)', 'Pájaros (Posterior)'],
+            'Pierna1': ['Pantorrillas', 'Aductores', 'Sentadilla Hack', 'Prensa', 'Extensiones de Cuádriceps'],
+            'Pierna2': ['Hip thrust', 'Curl Femoral Sentado', 'Curl Femoral Tumbado', 'Bulgaras', 'Abductores']
+        };
+
+        // Empezar con historial limpio
+        let workoutData = JSON.parse(localStorage.getItem('reyfit_data_v1')) || [];
+        let chartInstance = null;
+        let setCounter = 0;
+
+        const categorySelect = document.getElementById('categorySelect');
+        const exerciseSelect = document.getElementById('exerciseSelect');
+        const dateInput = document.getElementById('dateInput');
+        const workoutForm = document.getElementById('workoutForm');
+        const setsContainer = document.getElementById('setsContainer');
+        const addSetBtn = document.getElementById('addSetBtn');
+        const historyFilter = document.getElementById('historyFilter');
+        const historyList = document.getElementById('historyList');
+        const toastContainer = document.getElementById('toastContainer');
+        const noDataMessage = document.getElementById('noDataMessage');
+
+        function init() {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+
+            populateExercises();
+            populateHistoryFilter();
+
+            categorySelect.addEventListener('change', populateExercises);
+            workoutForm.addEventListener('submit', handleLogWorkout);
+            historyFilter.addEventListener('change', updateDashboard);
+            addSetBtn.addEventListener('click', addSetRow);
+
+            addSetRow();
+            updateDashboard();
+        }
+
+        function populateExercises() {
+            const category = categorySelect.value;
+            const exercises = exerciseDB[category];
+            
+            exerciseSelect.innerHTML = '';
+            exercises.forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex;
+                option.textContent = ex;
+                exerciseSelect.appendChild(option);
+            });
+        }
+
+        function populateHistoryFilter() {
+            historyFilter.innerHTML = '';
+            let allExercises = [];
+            for (let cat in exerciseDB) {
+                allExercises = allExercises.concat(exerciseDB[cat]);
+            }
+            allExercises.sort();
+            
+            allExercises.forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex;
+                option.textContent = ex;
+                if(ex === 'Press de Banca') option.selected = true;
+                historyFilter.appendChild(option);
+            });
+        }
+
+        function addSetRow() {
+            setCounter++;
+            const row = document.createElement('div');
+            row.className = 'set-row flex items-center gap-2 sm:gap-3';
+            row.innerHTML = `
+                <span class="text-xs font-bold text-gray-500 w-5">#${setCounter}</span>
+                <div class="flex-1 relative">
+                    <input type="number" step="0.5" min="0" placeholder="Peso" required class="weight-input w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-2.5 text-white text-center text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    <span class="absolute right-2 top-2.5 text-xs text-gray-500 pointer-events-none">kg</span>
+                </div>
+                <div class="flex-1">
+                    <input type="number" min="1" placeholder="Reps" required class="reps-input w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-2.5 text-white text-center text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                </div>
+                <button type="button" class="text-gray-500 hover:text-red-400 p-1 transition-colors" onclick="this.parentElement.remove(); updateSetNumbers();">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            `;
+            setsContainer.appendChild(row);
+            updateSetNumbers();
+        }
+
+        function updateSetNumbers() {
+            const rows = setsContainer.querySelectorAll('.set-row');
+            setCounter = 0;
+            rows.forEach((row, index) => {
+                setCounter = index + 1;
+                row.querySelector('span').textContent = '#' + setCounter;
+            });
+        }
+
+        function saveData() {
+            localStorage.setItem('reyfit_data_v1', JSON.stringify(workoutData));
+        }
+
+        function deleteWorkout(id) {
+            if(confirm('¿Estás seguro de eliminar este registro?')) {
+                workoutData = workoutData.filter(w => w.id !== id);
+                saveData();
+                updateDashboard();
+                showToast('Entrenamiento eliminado');
+            }
+        }
+
+        function handleLogWorkout(e) {
+            e.preventDefault();
+
+            const setRows = setsContainer.querySelectorAll('.set-row');
+            if (setRows.length === 0) {
+                showToast("Debes añadir al menos una serie");
+                return;
+            }
+
+            const sets = [];
+            let isValid = true;
+            
+            setRows.forEach(row => {
+                const weight = parseFloat(row.querySelector('.weight-input').value);
+                const reps = parseInt(row.querySelector('.reps-input').value);
+                if (isNaN(weight) || isNaN(reps)) isValid = false;
+                sets.push({ weight, reps });
+            });
+
+            if (!isValid) return;
+
+            const newWorkout = {
+                id: Date.now(), // ID único para poder eliminarlo después
+                date: dateInput.value,
+                category: categorySelect.value,
+                exercise: exerciseSelect.value,
+                sets: sets
+            };
+
+            workoutData.push(newWorkout);
+            saveData(); 
+
+            showToast(`¡${newWorkout.exercise} guardado!`);
+
+            setsContainer.innerHTML = '';
+            setCounter = 0;
+            addSetRow();
+
+            historyFilter.value = newWorkout.exercise;
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const selectedExercise = historyFilter.value;
+            
+            const filteredData = workoutData
+                .filter(w => w.exercise === selectedExercise)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            renderChart(filteredData);
+            renderHistoryList(filteredData);
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            if (chartInstance) chartInstance.destroy();
+
+            if (data.length === 0) {
+                noDataMessage.classList.remove('hidden');
+                return;
+            } else {
+                noDataMessage.classList.add('hidden');
+            }
+
+            const dates = data.map(w => {
+                const d = new Date(w.date + 'T00:00:00');
+                return `${d.getDate()}/${d.getMonth() + 1}`;
+            });
+            
+            const maxWeights = data.map(w => {
+                if(!w.sets || w.sets.length === 0) return 0;
+                return Math.max(...w.sets.map(s => s.weight));
+            });
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Peso Máximo (kg)',
+                        data: maxWeights,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#1f2937',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1f2937',
+                            titleColor: '#9ca3af',
+                            bodyColor: '#fff',
+                            borderColor: '#374151',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    const record = data[context.dataIndex];
+                                    return `Max: ${context.raw} kg (${record.sets.length} series)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: '#374151', drawBorder: false },
+                            ticks: { color: '#9ca3af', maxTicksLimit: 5 }
+                        },
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    },
+                    interaction: { intersect: false, mode: 'index' },
+                }
+            });
+        }
+
+        function renderHistoryList(data) {
+            historyList.innerHTML = '';
+            
+            if (data.length === 0) {
+                historyList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Agrega tu primer entrenamiento para ver el historial.</p>';
+                return;
+            }
+
+            const reversedData = [...data].reverse();
+
+            reversedData.forEach(item => {
+                const dateObj = new Date(item.date + 'T00:00:00');
+                const dateStr = dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                
+                let setsHtml = '';
+                item.sets.forEach((set, idx) => {
+                    setsHtml += `
+                        <div class="text-xs text-gray-400 mt-1 flex justify-between items-center bg-gray-800/60 px-2 py-1.5 rounded">
+                            <span class="font-medium text-gray-500">Serie ${idx + 1}</span>
+                            <span class="text-gray-300 font-bold tracking-wide">${set.weight} kg <span class="text-gray-500 mx-1 font-normal">×</span> ${set.reps}</span>
+                        </div>`;
+                });
+
+                const div = document.createElement('div');
+                div.className = 'bg-gray-900 p-3 rounded-xl border border-gray-700/50 flex flex-col mb-3';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">${dateStr}</span>
+                            <span class="text-sm font-medium text-white">${item.exercise}</span>
+                        </div>
+                        <!-- Botón de Eliminar -->
+                        <button onclick="deleteWorkout(${item.id})" class="text-gray-500 hover:text-red-500 transition-colors p-1" title="Eliminar registro">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    <div class="space-y-1">
+                        ${setsHtml}
+                    </div>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'bg-gray-800 border border-gray-700 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 toast-enter';
+            toast.innerHTML = `
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="font-medium text-sm">${message}</span>
+            `;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        window.onload = init;
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
