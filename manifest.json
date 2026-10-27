@@ -1,10 +1,10 @@
 {
-  "name": "Mi Entreno",
-  "short_name": "Entreno",
+  "name": "ReyFit",
+  "short_name": "ReyFit",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#BB86FC",
+  "background_color": "#111827",
+  "theme_color": "#10b981",
   "icons": [
     {
       "src": "icon-192.png",

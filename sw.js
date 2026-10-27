@@ -1,4 +1,4 @@
-const CACHE_NAME = 'entreno-v1';
+const CACHE_NAME = 'reyfit-v1';
 const urlsToCache = [
   './',
   './index.html',
