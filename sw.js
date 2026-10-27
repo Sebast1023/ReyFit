@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reyfit-v2';
+const CACHE_NAME = 'reyfit-v3';
 const urlsToCache = [
   './',
   './index.html',

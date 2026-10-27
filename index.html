@@ -20,6 +20,11 @@
                             400: '#34d399',
                             500: '#10b981',
                             600: '#059669',
+                        },
+                        purple: {
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
                         }
                     },
                     fontFamily: {
@@ -36,28 +41,12 @@
             font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1f2937;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #374151;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #4b5563;
-        }
-        @keyframes slideInUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
         .toast-enter { animation: slideInUp 0.3s ease-out forwards; }
         .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
     </style>
@@ -66,7 +55,7 @@
 
     <div class="max-w-md mx-auto p-4 sm:p-6 space-y-6 pb-24">
         
-        <!-- Header -->
+        <!-- Header con Botones de Respaldo -->
         <header class="flex items-center justify-between pt-4 pb-2 border-b border-gray-800">
             <div>
                 <h1 class="text-2xl font-bold text-white flex items-center gap-2">
@@ -74,6 +63,16 @@
                     ReyFit
                 </h1>
                 <p class="text-sm text-gray-400 mt-1">Registra tu sobrecarga progresiva</p>
+            </div>
+            <!-- Controles de Respaldo -->
+            <div class="flex items-center gap-1.5">
+                <button onclick="exportData()" class="bg-gray-800 hover:bg-gray-700 text-emerald-400 p-2 rounded-xl border border-gray-700 transition-colors" title="Exportar Respaldo">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </button>
+                <label class="bg-gray-800 hover:bg-gray-700 text-purple-400 p-2 rounded-xl border border-gray-700 transition-colors cursor-pointer" title="Importar Respaldo">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+                </label>
             </div>
         </header>
 
@@ -83,7 +82,6 @@
             
             <form id="workoutForm" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- Categoría -->
                     <div class="col-span-2 sm:col-span-1">
                         <label class="block text-sm font-medium text-gray-400 mb-1">Grupo Muscular</label>
                         <select id="categorySelect" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
@@ -97,13 +95,17 @@
                         </select>
                     </div>
 
-                    <!-- Ejercicio -->
                     <div class="col-span-2 sm:col-span-1">
                         <label class="block text-sm font-medium text-gray-400 mb-1">Ejercicio</label>
                         <select id="exerciseSelect" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
                             <!-- Opciones llenadas por JS -->
                         </select>
                     </div>
+                </div>
+
+                <!-- Recordatorio Fantasma -->
+                <div id="lastSessionReminder" class="text-xs text-gray-400 bg-gray-900/80 p-2.5 rounded-lg border border-gray-700/50 hidden">
+                    <!-- Llenado por JS -->
                 </div>
 
                 <div class="bg-gray-900/50 rounded-xl p-3 border border-gray-700 space-y-3 mt-4">
@@ -136,15 +138,30 @@
                 </select>
             </div>
 
-            <div class="relative w-full h-48 sm:h-56 bg-gray-900 rounded-xl p-2 border border-gray-700 mb-4">
-                <canvas id="progressChart"></canvas>
-                <div id="noDataMessage" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm hidden">
-                    No hay suficientes datos para graficar.
+            <div class="space-y-4 mb-4">
+                <!-- Gráfica de Peso (Línea - 24 sesiones) -->
+                <div class="relative w-full h-44 bg-gray-900 rounded-xl p-2 border border-gray-700">
+                    <span class="absolute top-2 left-3 text-[10px] uppercase tracking-wider font-bold text-emerald-500">Peso Máximo (kg)</span>
+                    <span class="absolute top-2 right-3 text-[10px] text-gray-500">Últimas 24 sesiones</span>
+                    <div class="h-full pt-4">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                    <div id="noDataWeight" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm hidden">Sin datos</div>
+                </div>
+
+                <!-- Gráfica de Repeticiones (Barras - 4 sesiones) -->
+                <div class="relative w-full h-44 bg-gray-900 rounded-xl p-2 border border-gray-700">
+                    <span class="absolute top-2 left-3 text-[10px] uppercase tracking-wider font-bold text-purple-400">Repeticiones por Serie</span>
+                    <span class="absolute top-2 right-3 text-[10px] text-gray-500">Últimas 4 sesiones</span>
+                    <div class="h-full pt-4">
+                        <canvas id="repsChart"></canvas>
+                    </div>
+                    <div id="noDataReps" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm hidden">Sin datos</div>
                 </div>
             </div>
 
             <div class="mt-4">
-                <h3 class="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Historial</h3>
+                <h3 class="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Historial Completo</h3>
                 <div id="historyList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                     <!-- Items insertados por JS -->
                 </div>
@@ -166,8 +183,9 @@
             'Pierna2': ['Hip thrust', 'Curl Femoral Sentado', 'Curl Femoral Tumbado', 'Bulgaras', 'Abductores']
         };
 
-        let workoutData = JSON.parse(localStorage.getItem('reyfit_data_v2')) || [];
-        let chartInstance = null;
+        let workoutData = JSON.parse(localStorage.getItem('reyfit_data_v1')) || [];
+        let weightChartInstance = null;
+        let repsChartInstance = null;
         let setCounter = 0;
 
         const categorySelect = document.getElementById('categorySelect');
@@ -179,7 +197,10 @@
         const historyFilter = document.getElementById('historyFilter');
         const historyList = document.getElementById('historyList');
         const toastContainer = document.getElementById('toastContainer');
-        const noDataMessage = document.getElementById('noDataMessage');
+        const reminderDiv = document.getElementById('lastSessionReminder');
+        
+        const noDataWeight = document.getElementById('noDataWeight');
+        const noDataReps = document.getElementById('noDataReps');
 
         function init() {
             const today = new Date().toISOString().split('T')[0];
@@ -189,6 +210,7 @@
             populateHistoryFilter();
 
             categorySelect.addEventListener('change', populateExercises);
+            exerciseSelect.addEventListener('change', updateLastSessionReminder);
             workoutForm.addEventListener('submit', handleLogWorkout);
             historyFilter.addEventListener('change', updateDashboard);
             addSetBtn.addEventListener('click', addSetRow);
@@ -208,6 +230,33 @@
                 option.textContent = ex;
                 exerciseSelect.appendChild(option);
             });
+            updateLastSessionReminder();
+        }
+
+        function updateLastSessionReminder() {
+            const selectedEx = exerciseSelect.value;
+            const history = workoutData
+                .filter(w => w.exercise === selectedEx)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (history.length > 0) {
+                const last = history[history.length - 1];
+                const dateObj = new Date(last.date + 'T00:00:00');
+                const dateStr = dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                
+                let setsStr = last.sets.map(s => `<span class="text-gray-300 font-semibold">${s.weight}</span><span class="text-gray-500">x</span><span class="text-gray-300 font-semibold">${s.reps}</span>`).join('<span class="text-gray-600 mx-1">|</span>');
+                
+                reminderDiv.innerHTML = `
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="text-purple-400 font-medium tracking-wide">Última vez (${dateStr})</span>
+                    </div>
+                    <div class="pl-5 leading-relaxed">${setsStr}</div>
+                `;
+                reminderDiv.classList.remove('hidden');
+            } else {
+                reminderDiv.classList.add('hidden');
+            }
         }
 
         function populateHistoryFilter() {
@@ -218,7 +267,6 @@
             }
             allExercises.sort();
             
-            // 1. Agregar todas las opciones al DOM
             allExercises.forEach(ex => {
                 const option = document.createElement('option');
                 option.value = ex;
@@ -226,13 +274,10 @@
                 historyFilter.appendChild(option);
             });
 
-            // 2. Determinar cuál seleccionar (el último ejercicio guardado o Press de Banca)
             let selectedEx = 'Press de Banca';
             if (workoutData.length > 0) {
                 selectedEx = workoutData[workoutData.length - 1].exercise;
             }
-
-            // 3. Asignar el valor directamente al select YA poblado (esto corrige el bug en celulares)
             historyFilter.value = selectedEx;
         }
 
@@ -247,7 +292,7 @@
                     <span class="absolute right-2 top-2.5 text-xs text-gray-500 pointer-events-none">kg</span>
                 </div>
                 <div class="flex-1">
-                    <input type="number" min="1" placeholder="Reps" required class="reps-input w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-2.5 text-white text-center text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    <input type="number" min="1" placeholder="Reps" required class="reps-input w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-2.5 text-white text-center text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none transition-all">
                 </div>
                 <button type="button" class="text-gray-500 hover:text-red-400 p-1 transition-colors" onclick="this.parentElement.remove(); updateSetNumbers();">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -270,12 +315,57 @@
             localStorage.setItem('reyfit_data_v1', JSON.stringify(workoutData));
         }
 
+        // --- FUNCIONES DE RESPALDO (EXPORTAR / IMPORTAR) ---
+        function exportData() {
+            if (workoutData.length === 0) {
+                showToast("No hay datos para exportar");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(workoutData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "reyfit_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("¡Respaldo exportado con éxito!");
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        if(confirm('¿Deseas reemplazar tu historial actual con este respaldo?')) {
+                            workoutData = importedData;
+                            saveData();
+                            populateHistoryFilter();
+                            updateDashboard();
+                            updateLastSessionReminder();
+                            showToast("¡Datos restaurados correctamente!");
+                        }
+                    } else {
+                        alert("El archivo no tiene el formato correcto.");
+                    }
+                } catch (error) {
+                    alert("Error al leer el archivo JSON.");
+                }
+                event.target.value = ''; // Limpiar input
+            };
+            reader.readAsText(file);
+        }
+
         function deleteWorkout(id) {
             if(confirm('¿Estás seguro de eliminar este registro?')) {
                 workoutData = workoutData.filter(w => w.id !== id);
                 saveData();
                 populateHistoryFilter();
                 updateDashboard();
+                updateLastSessionReminder();
                 showToast('Entrenamiento eliminado');
             }
         }
@@ -321,6 +411,7 @@
             populateHistoryFilter();
             historyFilter.value = newWorkout.exercise;
             updateDashboard();
+            updateLastSessionReminder();
         }
 
         function updateDashboard() {
@@ -330,47 +421,50 @@
                 .filter(w => w.exercise === selectedExercise)
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-            renderChart(filteredData);
+            renderCharts(filteredData);
             renderHistoryList(filteredData);
         }
 
-        function renderChart(data) {
-            const ctx = document.getElementById('progressChart').getContext('2d');
+        function renderCharts(data) {
+            const ctxWeight = document.getElementById('weightChart').getContext('2d');
+            const ctxReps = document.getElementById('repsChart').getContext('2d');
             
-            if (chartInstance) chartInstance.destroy();
+            if (weightChartInstance) weightChartInstance.destroy();
+            if (repsChartInstance) repsChartInstance.destroy();
 
-            if (data.length === 0) {
-                noDataMessage.classList.remove('hidden');
+            const weightDataList = data.slice(-24);
+            const repsDataList = data.slice(-4);
+
+            if (weightDataList.length === 0) {
+                noDataWeight.classList.remove('hidden');
+                noDataReps.classList.remove('hidden');
                 return;
             } else {
-                noDataMessage.classList.add('hidden');
+                noDataWeight.classList.add('hidden');
+                noDataReps.classList.add('hidden');
             }
 
-            const dates = data.map(w => {
+            // --- GRÁFICA DE PESO (24 sesiones) ---
+            const weightDates = weightDataList.map(w => {
                 const d = new Date(w.date + 'T00:00:00');
                 return `${d.getDate()}/${d.getMonth() + 1}`;
             });
-            
-            const maxWeights = data.map(w => {
-                if(!w.sets || w.sets.length === 0) return 0;
-                return Math.max(...w.sets.map(s => s.weight));
-            });
+            const maxWeights = weightDataList.map(w => Math.max(...w.sets.map(s => s.weight)));
 
-            chartInstance = new Chart(ctx, {
+            weightChartInstance = new Chart(ctxWeight, {
                 type: 'line',
                 data: {
-                    labels: dates,
+                    labels: weightDates,
                     datasets: [{
-                        label: 'Peso Máximo (kg)',
+                        label: 'Peso Máximo',
                         data: maxWeights,
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 3,
+                        borderWidth: 2,
                         pointBackgroundColor: '#10b981',
                         pointBorderColor: '#1f2937',
                         pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
+                        pointRadius: 3,
                         fill: true,
                         tension: 0.3
                     }]
@@ -381,33 +475,70 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#1f2937',
-                            titleColor: '#9ca3af',
-                            bodyColor: '#fff',
-                            borderColor: '#374151',
-                            borderWidth: 1,
-                            padding: 10,
-                            displayColors: false,
+                            backgroundColor: '#1f2937', titleColor: '#9ca3af', bodyColor: '#fff',
+                            borderColor: '#374151', borderWidth: 1, padding: 10, displayColors: false,
+                            callbacks: { label: (ctx) => `${ctx.raw} kg` }
+                        }
+                    },
+                    scales: {
+                        y: { grid: { color: '#374151', drawBorder: false }, ticks: { color: '#9ca3af', maxTicksLimit: 5 } },
+                        x: { grid: { display: false, drawBorder: false }, ticks: { color: '#9ca3af', maxTicksLimit: 6, maxRotation: 0 } }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+
+            // --- GRÁFICA DE REPETICIONES (4 sesiones) ---
+            const repsDates = repsDataList.map(w => {
+                const d = new Date(w.date + 'T00:00:00');
+                return `${d.getDate()}/${d.getMonth() + 1}`;
+            });
+
+            let maxSetsCount = 0;
+            repsDataList.forEach(w => { if (w.sets.length > maxSetsCount) maxSetsCount = w.sets.length; });
+
+            const repsDatasets = [];
+            const purpleShades = ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe']; 
+
+            for (let i = 0; i < maxSetsCount; i++) {
+                repsDatasets.push({
+                    label: `Serie ${i + 1}`,
+                    data: repsDataList.map(w => w.sets[i] ? w.sets[i].reps : null),
+                    backgroundColor: purpleShades[i % purpleShades.length],
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
+                });
+            }
+
+            repsChartInstance = new Chart(ctxReps, {
+                type: 'bar',
+                data: {
+                    labels: repsDates,
+                    datasets: repsDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1f2937', titleColor: '#9ca3af', bodyColor: '#fff',
+                            borderColor: '#374151', borderWidth: 1, padding: 10,
                             callbacks: {
-                                label: function(context) {
-                                    const record = data[context.dataIndex];
-                                    return `Max: ${context.raw} kg (${record.sets.length} series)`;
-                                }
+                                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} reps`
                             }
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: { color: '#374151', drawBorder: false },
-                            ticks: { color: '#9ca3af', maxTicksLimit: 5 }
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: '#374151', drawBorder: false }, 
+                            ticks: { color: '#a78bfa', stepSize: 2 } 
                         },
-                        x: {
-                            grid: { display: false, drawBorder: false },
-                            ticks: { color: '#9ca3af' }
-                        }
+                        x: { grid: { display: false, drawBorder: false }, ticks: { color: '#9ca3af' } }
                     },
-                    interaction: { intersect: false, mode: 'index' },
+                    interaction: { intersect: false, mode: 'index' }
                 }
             });
         }
