@@ -71,7 +71,7 @@
                 </button>
                 <label class="relative bg-gray-800 hover:bg-gray-700 text-purple-400 p-2 rounded-xl border border-gray-700 transition-colors cursor-pointer inline-flex items-center justify-center" title="Importar Respaldo" aria-label="Importar respaldo JSON">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    <input type="file" id="importFile" accept=".json,application/json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="importData(event)" aria-label="Seleccionar archivo JSON de respaldo">
+                    <input type="file" id="importFile" accept="*/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="importData(event)" aria-label="Seleccionar archivo JSON de respaldo">
                 </label>
             </div>
         </header>
@@ -186,7 +186,7 @@
         // Compatibilidad con versiones anteriores: algunas guardaban en v1 y otras en v3.
         function loadWorkoutData() {
             try {
-                const saved = localStorage.getItem('reyfit_data_v3') ?? localStorage.getItem('reyfit_data_v1');
+                const saved = localStorage.getItem('reyfit_data_v1');
                 const parsed = saved ? JSON.parse(saved) : [];
                 return Array.isArray(parsed) ? parsed : [];
             } catch (error) {
@@ -325,7 +325,6 @@
         function saveData() {
             // Usar v3 de forma consistente; mantener v1 actualizado para compatibilidad.
             const serialized = JSON.stringify(workoutData);
-            localStorage.setItem('reyfit_data_v3', serialized);
             localStorage.setItem('reyfit_data_v1', serialized);
         }
 
