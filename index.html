@@ -166,8 +166,7 @@
             'Pierna2': ['Hip thrust', 'Curl Femoral Sentado', 'Curl Femoral Tumbado', 'Bulgaras', 'Abductores']
         };
 
-        // Empezar con historial limpio
-        let workoutData = JSON.parse(localStorage.getItem('reyfit_data_v1')) || [];
+        let workoutData = JSON.parse(localStorage.getItem('reyfit_data_v2')) || [];
         let chartInstance = null;
         let setCounter = 0;
 
@@ -219,13 +218,22 @@
             }
             allExercises.sort();
             
+            // 1. Agregar todas las opciones al DOM
             allExercises.forEach(ex => {
                 const option = document.createElement('option');
                 option.value = ex;
                 option.textContent = ex;
-                if(ex === 'Press de Banca') option.selected = true;
                 historyFilter.appendChild(option);
             });
+
+            // 2. Determinar cuál seleccionar (el último ejercicio guardado o Press de Banca)
+            let selectedEx = 'Press de Banca';
+            if (workoutData.length > 0) {
+                selectedEx = workoutData[workoutData.length - 1].exercise;
+            }
+
+            // 3. Asignar el valor directamente al select YA poblado (esto corrige el bug en celulares)
+            historyFilter.value = selectedEx;
         }
 
         function addSetRow() {
@@ -266,6 +274,7 @@
             if(confirm('¿Estás seguro de eliminar este registro?')) {
                 workoutData = workoutData.filter(w => w.id !== id);
                 saveData();
+                populateHistoryFilter();
                 updateDashboard();
                 showToast('Entrenamiento eliminado');
             }
@@ -293,7 +302,7 @@
             if (!isValid) return;
 
             const newWorkout = {
-                id: Date.now(), // ID único para poder eliminarlo después
+                id: Date.now(),
                 date: dateInput.value,
                 category: categorySelect.value,
                 exercise: exerciseSelect.value,
@@ -309,6 +318,7 @@
             setCounter = 0;
             addSetRow();
 
+            populateHistoryFilter();
             historyFilter.value = newWorkout.exercise;
             updateDashboard();
         }
@@ -433,7 +443,6 @@
                             <span class="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">${dateStr}</span>
                             <span class="text-sm font-medium text-white">${item.exercise}</span>
                         </div>
-                        <!-- Botón de Eliminar -->
                         <button onclick="deleteWorkout(${item.id})" class="text-gray-500 hover:text-red-500 transition-colors p-1" title="Eliminar registro">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
@@ -461,7 +470,11 @@
             }, 3000);
         }
 
-        window.onload = init;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
     </script>
     <script>
         if ('serviceWorker' in navigator) {
